@@ -14,6 +14,9 @@ urlpatterns = [
  path('remove-from-cart/<slug>/', views.remove_from_cart, name='remove_from_cart'),
  path('remove-item-from-cart/<slug>/', views.remove_single_item_from_cart, name='remove_single_item_from_cart'),
  path('payment/<str:payment_option>/', views.payment, name='payment'),
+ path('add-coupon/', views.add_coupon , name = 'coupon'),
+ path('request-refund', views.RequestRefund , name = 'request_refund')
+
 ]
 
 

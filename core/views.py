@@ -6,14 +6,17 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render , get_object_or_404 , redirect
 from django.views.generic import ListView, DetailView
 from django.utils import timezone
-from .forms import CheckoutForm
+from .forms import CheckoutForm,CoupounForm,RefundForm
 from .models import *
-import stripe
+import stripe, random , string
 
 # Create your views here.
 
-
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+def create_ref_code():
+  return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
+
 
 
 
@@ -29,8 +32,6 @@ class ItemDetailView(DetailView):
 
   
     
-
-
 @login_required
 def orderSummary(request):
   try:
@@ -146,86 +147,159 @@ def checkout(request):
         return redirect("core:payment" , payment_option = 'paypal')
       else:
         messages.info(request,"Invalid payment option")
-        return redirect("core:checkout")
+        return redirect("core:checkout",{
+          
+        })
     
     else:
       messages.info(request,"Failed checked")
       return redirect("core:checkout")
 
   else :
+    order_items = OrderItem.objects.filter(order=order , ordered= False).all()
     return render(request,"core/checkout-page.html",{
-      'form' : CheckoutForm()
+      'form' : CheckoutForm(),
+      'couponForm' : CoupounForm(),
+      'order_items' : order_items,
+      'order' : order,
+      
     })  
 
 @login_required 
 def payment(request,payment_option):
-  # if request.method == "POST":
-  #   try:
-  #     order = Order.objects.get(user = request.user , ordered = False)
-  #   except ObjectDoesNotExist :
-  #     messages.error(request,"You do not have an active order")
+  try:
+    order = Order.objects.get(user = request.user , ordered = False)
+  except ObjectDoesNotExist :
+    return redirect("core:checkout")
+    messages.error(request,"You do not have an active order")
 
-  #   token = request.POST.get('stripeToken')
+  if request.method == "POST":
+    token = request.POST.get('stripeToken')
+    try:
+      # Use Stripe's library to make requests...
+      charge = stripe.Charge.create(
+      amount=int(order.get_total_price()) * 100, #convert to cents
+      currency="usd",
+      source=token,  
+      )
 
-  #   try:
-  #     # Use Stripe's library to make requests...
-  #     charge = stripe.Charge.create(
-  #     amount=int(order.get_total_price()) * 100, #convert to cents
-  #     currency="usd",
-  #     source=token,  
-  #     )
-
-  #     payment = Payment.objects.create(
-  #     stripe_charge_id = charge['id'],
-  #     user = request.user,
-  #     amount = order.get_total_price()
-  #     )
+      payment = Payment.objects.create(
+      stripe_charge_id = charge['id'],
+      user = request.user,
+      amount = order.get_total_price()
+      )
       
-  #     order.ordered = True
-  #     order.payment = payment
-  #     order.save()
-  #     messages.success(request,'Your order was successful!')
-  #     return redirect('/')
-
-  #   except stripe.error.CardError as e:
-  #     # Since it's a decline, stripe.error.CardError will be caught
-  #     body = e.json_body
-  #     err = body.get('error', {})
-  #     messages.error(request, f"{err.get('message')}")
+      order_items = OrderItem.objects.filter(order=order , ordered= False).all()
+      for order_item in order_items :
+        order_item.ordered = True
+        order_item.save()
+        
+      order.ordered = True
+      order.payment = payment
+      order.ref_code = create_ref_code()
+      order.save()
       
-  #   except stripe.error.RateLimitError as e:
-  #     # Too many requests made to the API too quickly
-  #     messages.warning(request, "Rate limit error")
-  #     return redirect("core:payment")
-  #   except stripe.error.InvalidRequestError as e:
-  #     # Invalid parameters were supplied to Stripe's API
-  #     messages.warning(request, "Invalid parameters")
-  #     return redirect("core:payment")
-  #   except stripe.error.AuthenticationError as e:
-  #     # Authentication with Stripe's API failed
-  #     # (maybe you changed API keys recently)
-  #     messages.warning(request, "Not authenticated")
-  #     return redirect("core:payment")
-  #   except stripe.error.APIConnectionError as e:
-  #     # Network communication with Stripe failed
-  #     messages.warning(request, "Network error")
-  #     return redirect("core:payment")
+      messages.success(request,'Your order was successful!')
+      return redirect('/')
 
-  #   except stripe.error.StripeError as e:
-  #     # Display a very generic error to the user, and maybe send
-  #     # yourself an email
-  #     messages.warning(request, "Something went wrong. You were not charged. Please try again.")
-  #     return redirect("core:payment")
-  #   except Exception as e:
-  #     # Something else happened, completely unrelated to Stripe
-  #     messages.warning(request, "A serious error occurred. We have been notifed.")
-  #     return redirect("core:payment")
+    except stripe.error.CardError as e:
+      # Since it's a decline, stripe.error.CardError will be caught
+      body = e.json_body
+      err = body.get('error', {})
+      messages.error(request, f"{err.get('message')}")
+      
+    except stripe.error.RateLimitError as e:
+      # Too many requests made to the API too quickly
+      messages.warning(request, "Rate limit error")
+      return redirect("core:payment")
+    except stripe.error.InvalidRequestError as e:
+      # Invalid parameters were supplied to Stripe's API
+      messages.warning(request, "Invalid parameters")
+      return redirect("core:payment")
+    except stripe.error.AuthenticationError as e:
+      # Authentication with Stripe's API failed
+      # (maybe you changed API keys recently)
+      messages.warning(request, "Not authenticated")
+      return redirect("core:payment")
+    except stripe.error.APIConnectionError as e:
+      # Network communication with Stripe failed
+      messages.warning(request, "Network error")
+      return redirect("core:payment")
+
+    except stripe.error.StripeError as e:
+      # Display a very generic error to the user, and maybe send
+      # yourself an email
+      messages.warning(request, "Something went wrong. You were not charged. Please try again.")
+      return redirect("core:payment")
+    except Exception as e:
+      # Something else happened, completely unrelated to Stripe
+      messages.warning(request, "A serious error occurred. We have been notifed.")
+      return redirect("core:payment")
 
 
-  # else:
-    return render(request,'core/payment-page.html', {
-      'payment_option': payment_option,
-    })
+  else:
+    if order.billing_address :  
+      order_items = OrderItem.objects.filter(order=order , ordered= False).all()
+      return render(request,'core/payment-page.html', {
+        'payment_option': payment_option,
+        'order_items' : order_items,
+        'order' : order,
+        'couponForm' : CoupounForm(),
+      })
+    else :
+      messages.info(request, "You have not added Billing adress")
+      return redirect("core:checkout")  
 
+
+
+@login_required 
+def add_coupon(request):
+  if request.method == "POST":
+    form = CoupounForm(request.POST)
+    if form.is_valid():
+      try:
+        order = Order.objects.get(user = request.user , ordered = False)
+      except ObjectDoesNotExist :
+        messages.error(request,"You do not have an active order")
+        return redirect("core:checkout")
+    
+      code = form.cleaned_data.get('code')
+      try: 
+        coupon = Coupon.objects.get(code=code)  
+      except ObjectDoesNotExist :
+        messages.error(request,"This coupon does not exist")
+        return redirect("core:checkout")
+
+  order.coupon= coupon
+  order.save()  
+  messages.success(request,"Successfully added coupon")
+  return redirect("core:checkout")
+
+
+def RequestRefund(request):
+  if request.method == 'POST' : 
+    form = RefundForm(request.POST)
+    if form.is_valid() : 
+      ref_code = form.cleaned_data.get('ref_code')
+      reason = form.cleaned_data.get('reason')
+      try : 
+        order = Order.objects.get(ref_code = ref_code)
+      except ObjectDoesNotExist :
+        messages.info(request , 'This order does not exist')
+        return redirect('core:request_refund') 
+
+      if order.refund_requested :
+        messages.info(request , 'Your request has been sent already')
+        return redirect('core:request_refund') 
+      order.refund_requested = True
+      order.save()
+      refund = Refund.objects.create(order = order , reason = reason)
+      messages.info(request , 'Your Request has been received')
+      return redirect('core:request_refund') 
+
+  else :
+    return render(request,'core/request_refund.html', {
+      'form' : RefundForm
+    })      
 
 

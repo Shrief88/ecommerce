@@ -34,11 +34,24 @@ class Item (models.Model):
 
 class Order(models.Model):
   user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+  ref_code = models.CharField(max_length=20)
   start_data = models.DateTimeField(auto_now_add=True)
   ordered_date = models.DateTimeField()
   ordered = models.BooleanField(default=False)
   billing_address = models.ForeignKey('BillingAddress' , on_delete=models.SET_NULL ,blank=True, null=True)
   payment = models.ForeignKey('Payment' , on_delete=models.SET_NULL ,blank=True, null=True)
+  coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL ,blank=True, null=True)
+  being_delivered = models.BooleanField(default=False)
+  received = models.BooleanField(default=False)
+  refund_requested = models.BooleanField(default=False)
+  refund_granted = models.BooleanField(default=False)
+
+  # 1) added item to card
+  # 2) adding billing address
+  # 3) adding patment card
+  # 4) (failed checkout)
+  # 5) (preprocessing , processing , packing , being delivered , Received)
+  # 6) Refunds
   
 
   def __str__(self):
@@ -49,6 +62,8 @@ class Order(models.Model):
     for item in self.items.all():
       tmp = item.get_final_price()
       total = total + tmp
+    if self.coupon:
+      total -= ((self.coupon.amount/100)*total)   
     return total
 
   
@@ -84,6 +99,9 @@ class BillingAddress(models.Model):
   city = models.CharField(max_length=100)
   address = models.CharField(max_length=100)
   secAdress = models.CharField(max_length=100 , blank=True , null= True)
+
+  def __str__(self):
+    return self.user.username
   
 
 class Payment(models.Model):
@@ -92,4 +110,23 @@ class Payment(models.Model):
   amount = models.FloatField()
   timestamp = models.DateTimeField(auto_now_add=True)
 
+  def __str__(self):
+    return self.user.username
 
+
+class Coupon(models.Model):
+  code = models.CharField(max_length=15)
+  amount = models.FloatField()
+
+  def __str__(self):
+    return self.code
+
+
+
+class Refund(models.Model):
+  order = models.ForeignKey(Order , on_delete=models.CASCADE)
+  reason = models.TextField()
+  accepted = models.BooleanField(default=False)
+
+  def __str__(self):
+    return self.pk

@@ -166,8 +166,8 @@
 
               <!--Card image-->
               <div class="view overlay">
-                <img src="https://mdbootstrap.com/img/Photos/Horizontal/E-commerce/Vertical/12.jpg" class="card-img-top"
-                  alt="">
+                <img src="{{item.image.url}}" class="card-img-top"
+                  alt="{{item.title}}">
                 <a href="{% url 'core:product' item.slug %}">
                   <div class="mask rgba-white-slight"></div>
                 </a>
