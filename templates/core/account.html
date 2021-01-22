@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}
+
+
+
+{% block content %}
+
+<div class='container'>
+  <h2>Orders</h2>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Ref code</th>
+          <th scope="col">Ordered Date</th>
+          <th scope="col">Delivered</th>
+          <th scope="col">Received</th>
+          <th scope="col">Refund Requested</th>
+          <th scope="col">Total Price</th> 
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <th scope="row">{{forloop.counter}}</th>
+          <td><a href="{% url 'core:order' order.ref_code %}"> {{order.ref_code}}</a></td>
+          <td>{{order.ordered_date}}</td>
+
+          <td style="text-align: center;">
+           {% if order.being_delivered %}
+            <i class="far fa-check-circle"></i>
+           {% else %}
+            <i class="far fa-times-circle"></i>
+           {% endif %}
+          </td>
+
+          <td style="text-align: center;">
+           {% if order.received %}
+            <i class="far fa-check-circle"></i>
+           {% else %}
+            <i class="far fa-times-circle"></i>
+           {% endif %}
+          </td>
+
+          <td style="text-align: center;">
+           {% if order.refund_requested %}
+            <i class="far fa-check-circle"></i>
+            <td style="text-align: center;"><b>{{order.get_total_price}}</b></td> 
+           {% else %}
+            <i class="far fa-times-circle"></i>
+            <td style="text-align: center;"><b>{{order.get_total_price}}</b></td> 
+            <td><a class='btn btn-primary btn-sm float-right ' href={% url 'core:request_refund' %}>Request Refund</a></td> 
+           {% endif %}
+          </td>
+          
+          
+          
+           
+         
+        </tr>
+        {% endfor %} 
+
+        
+
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+
+
+
+{% endblock content %}
+  

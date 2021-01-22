@@ -1,4 +1,6 @@
 {% extends 'core/base.html' %}
+{% load tags %}
+
 
 
 {% block content %}
@@ -29,8 +31,12 @@
 
                 <!--firstName-->
                 <div class="md-form ">
-                  {{form.first_name}}
-                  <label for="firstName" class="">First name</label>
+                  {%if order.billing_address %}
+                    {{form.first_name|add_value:order.billing_address.first_name}}
+                  {% else %}
+                    {{form.first_name}}  
+                  {% endif %}
+                  <label for="firstName" class="">Frist name</label>
                 </div>
 
               </div>
@@ -41,7 +47,11 @@
 
                 <!--lastName-->
                 <div class="md-form">
-                  {{form.last_name}}
+                  {%if order.billing_address %}
+                    {{form.last_name|add_value:order.billing_address.last_name}}
+                  {% else %}
+                    {{form.last_name}}  
+                  {% endif %}
                   <label for="lastName" class="">Last name</label>
                 </div>
 
@@ -53,18 +63,31 @@
 
             <!--Phone number -->  
             <div class="md-form mb-5">
-              {{form.phone}}
+              {%if order.billing_address %}
+                  {{form.phone|add_value:order.billing_address.phone}}
+              {% else %}
+                  {{form.phone}}  
+              {% endif %}
               <label for="phone" class="">Phone number</label>
             </div>
 
              <!--Phone number-2 -->  
             <div class="md-form mb-5">
-              {{form.secPhone}}
+              {%if order.billing_address.secPhone %}
+                  {{form.secPhone|add_value:order.billing_address.secPhone}}
+              {% else %}
+                  {{form.secPhone}}  
+              {% endif %}
               <label for="phone-2" class="">Phone number 2 (optional)</label>
             </div>
 
+            <!--city-->  
             <div class="md-form mb-5">
-              {{form.city}}
+              {%if order.billing_address %}
+                  {{form.city|add_value:order.billing_address.city}}
+              {% else %}
+                  {{form.city}}  
+              {% endif %}
               <label for="city" class="">City</label>
             </div>
 
@@ -73,26 +96,26 @@
 
             <!--address-->
             <div class="md-form mb-5">
-              {{form.address}}
+              {%if order.billing_address %}
+                  {{form.address|add_value:order.billing_address.address}}
+              {% else %}
+                  {{form.address}}  
+              {% endif %}
               <label for="address" class="">Address</label>
             </div>
 
             <!--address-2-->
             <div class="md-form mb-5">
-              {{form.secAddress}}
+              {%if order.billing_address.secAdress %}
+                  {{form.secAddress|add_value:order.billing_address.secAdress}}
+              {% else %}
+                  {{form.secAddress}}  
+              {% endif %}
               <label for="address-2" class="">Address 2 (optional)</label>
             </div>
 
-            <hr>
+            
 
-            <div class="custom-control custom-checkbox">
-              {{form.same_shipping_address}}
-              <label class="custom-control-label" for="same-address">Shipping address is the same as my billing address</label>
-            </div>
-            <div class="custom-control custom-checkbox">
-              {{form.same_info}}
-              <label class="custom-control-label" for="save-info">Save this information for next time</label>
-            </div>
 
             <hr>
 

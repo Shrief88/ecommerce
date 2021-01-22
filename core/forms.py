@@ -3,13 +3,14 @@ from django import forms
 
 PAYMENT_CHOICES = (
   ('S', 'Stripe'),
-  ('P', 'PayPal'),
+  ('C', 'Cash on delivery'),
 )
 
 class CheckoutForm(forms.Form):
   first_name = forms.CharField(widget=forms.TextInput(attrs={
     'class' : 'form-control',
-    'id' : 'firstName' 
+    'id' : 'firstName' ,
+    
   }))
   
   last_name = forms.CharField(widget=forms.TextInput(attrs={
@@ -43,15 +44,7 @@ class CheckoutForm(forms.Form):
     'id' : 'address-2' 
   })) 
 
-  same_shipping_address = forms.BooleanField(required=False ,widget=forms.CheckboxInput(attrs={
-    'class' : 'custom-control-input',
-    'id'  : 'same-address'
-  }))
-
-  same_info = forms.BooleanField(required=False ,widget=forms.CheckboxInput(attrs={
-    'class' : 'custom-control-input',
-    'id'  : 'save-info'
-  }))
+  
 
   payment_option = forms.ChoiceField(widget=forms.RadioSelect, choices=PAYMENT_CHOICES)
 
@@ -69,4 +62,13 @@ class RefundForm(forms.Form):
   ref_code = forms.CharField()
   reason = forms.CharField(widget=forms.Textarea(attrs={
     'rows' : 4
+  }))
+
+
+class AddingForm(forms.Form):
+  quantity = forms.IntegerField(min_value=1,widget=forms.NumberInput(attrs={
+    'value' : 1,
+    'aria-label': 'Search',
+    'class' : 'form-control',
+    'style' : "width: 60px",
   }))

@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render , get_object_or_404 , redirect
 from django.views.generic import ListView, DetailView
 from django.utils import timezone
-from .forms import CheckoutForm,CoupounForm,RefundForm
+from .forms import CheckoutForm,CoupounForm,RefundForm,AddingForm
 from .models import *
 import stripe, random , string
 
@@ -25,24 +25,28 @@ class HomeView(ListView):
   paginate_by = 8  #number of items that will show in every page
   template_name = "core/home-page.html"
 
-
+ 
 class ItemDetailView(DetailView):
   model = Item 
-  template_name = "core/product-page.html"  
+  template_name = "core/product-page.html" 
 
-  
-    
+  def get_context_data(self, **kwargs):    
+    context = super().get_context_data(**kwargs)     
+    context['form'] = AddingForm()
+    return context 
+
+      
 @login_required
 def orderSummary(request):
   try:
     order = Order.objects.get(user = request.user , ordered = False)
   except ObjectDoesNotExist :
     messages.error(request,"You do not have an active order")
-    return redirect("/") 
-  order_items = OrderItem.objects.filter(order=order , ordered= False).all()
+    return redirect("/")   
+  order_items = OrderItem.objects.filter(order=order).all()
   return render(request , 'core/orderSummary.html', {
     'order_items': order_items,
-    'order' : order
+    'order' : order,
   }) 
   
 @login_required
@@ -54,6 +58,8 @@ def add_to_cart(request,slug):
   item = get_object_or_404(Item , slug=slug)
   order = Order.objects.filter(user = request.user , ordered = False)
   
+  if quantity == 0 :
+    messages.info(request,"You must add Quantity to your item")
   if order.exists():
     order = order[0]
     order_item, created = OrderItem.objects.get_or_create(item=item , user=request.user , order=order , ordered= False)
@@ -133,23 +139,34 @@ def checkout(request):
       city = form.cleaned_data.get('city')
       address = form.cleaned_data.get('address')
       secAddress = form.cleaned_data.get('secAddress')
-      same_shipping_address = form.cleaned_data.get('same_shipping_address')
-      same_info = form.cleaned_data.get('same_info') 
       payment_option = form.cleaned_data.get('payment_option')
-      
-      billing_address = BillingAddress.objects.create(user = request.user,name = first_name+last_name,phone = phone,secPhone = secPhone,city = city,address = address,secAdress = secAddress)
-      order.billing_address = billing_address
+
+     
+
+      if order.billing_address:
+        billingAddress = order.billing_address
+        billingAddress.first_name=first_name
+        billingAddress.last_name=last_name
+        billingAddress.phone = phone
+        billingAddress.secPhone = secPhone
+        billingAddress.city = city
+        billingAddress.address = address
+        billingAddress.secAdress = secAddress
+        billingAddress.save()
+      else :  
+        billing_address = BillingAddress.objects.create(user = request.user, first_name=first_name , last_name=last_name ,phone = phone,secPhone = secPhone,city = city,address = address,secAdress = secAddress)
+        order.billing_address = billing_address
+
       order.save()
 
       if payment_option == 'S':
         return redirect("core:payment" , payment_option = 'stripe')
-      elif payment_option == 'P':
-        return redirect("core:payment" , payment_option = 'paypal')
+      elif payment_option == 'C':
+        messages.success(request,'Your order was successful!')
+        return redirect('/')
       else:
         messages.info(request,"Invalid payment option")
-        return redirect("core:checkout",{
-          
-        })
+        return redirect("core:checkout")
     
     else:
       messages.info(request,"Failed checked")
@@ -161,8 +178,7 @@ def checkout(request):
       'form' : CheckoutForm(),
       'couponForm' : CoupounForm(),
       'order_items' : order_items,
-      'order' : order,
-      
+      'order' : order,   
     })  
 
 @login_required 
@@ -172,6 +188,7 @@ def payment(request,payment_option):
   except ObjectDoesNotExist :
     return redirect("core:checkout")
     messages.error(request,"You do not have an active order")
+  
 
   if request.method == "POST":
     token = request.POST.get('stripeToken')
@@ -235,21 +252,11 @@ def payment(request,payment_option):
       # Something else happened, completely unrelated to Stripe
       messages.warning(request, "A serious error occurred. We have been notifed.")
       return redirect("core:payment")
-
-
   else:
-    if order.billing_address :  
-      order_items = OrderItem.objects.filter(order=order , ordered= False).all()
-      return render(request,'core/payment-page.html', {
-        'payment_option': payment_option,
-        'order_items' : order_items,
-        'order' : order,
-        'couponForm' : CoupounForm(),
-      })
-    else :
-      messages.info(request, "You have not added Billing adress")
-      return redirect("core:checkout")  
-
+    return render(request,'core/payment-page.html', {
+      'payment_option': payment_option,
+      'couponForm' : CoupounForm(),
+    })
 
 
 @login_required 
@@ -276,6 +283,7 @@ def add_coupon(request):
   return redirect("core:checkout")
 
 
+@login_required 
 def RequestRefund(request):
   if request.method == 'POST' : 
     form = RefundForm(request.POST)
@@ -303,3 +311,21 @@ def RequestRefund(request):
     })      
 
 
+@login_required 
+def account(request):
+  orders = Order.objects.filter(user = request.user , ordered=True).all()
+  return render(request,"core/account.html",{
+    'orders' : orders,
+  })
+
+
+
+@login_required 
+def order(request,ref_code):
+  order = Order.objects.get(ref_code=ref_code)
+  order_items = OrderItem.objects.filter(order=order).all()
+
+  return render(request,"core/order.html",{
+    'order_items' : order_items,
+    'order' : order 
+  })  

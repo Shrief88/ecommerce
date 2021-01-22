@@ -1,0 +1,83 @@
+{% extends "core/base.html" %}
+
+
+
+{% block content %}
+
+<div class='container'>
+  <h2>Order Summary</h2>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Item Title</th>
+          <th scope="col"> category</th>
+          <th scope="col">Quantity</th>
+          <th scope="col">Price</th>
+          <th scope="col">Total Price</th> 
+        </tr>
+    </thead>
+    <tbody>
+        {% for order_item in order_items %}
+        <tr>
+          <th scope="row">{{forloop.counter}}</th>
+          <td><a href="{% url 'core:product' order_item.item.slug %}"> {{order_item.item.title}}</a></td>
+          <td>{{order_item.item.get_category_display}}</td>
+          <td>{{order_item.quantity }}</td>
+          
+
+          {% if order_item.item.discount_price %} 
+            <td>
+              <span class="mr-1">
+                  <del>{{order_item.item.price}}$</del>
+              </span>   
+              {{order_item.item.discount_price}}$</td>
+            <td>
+              <span class="mr-1">
+                  <del>{{order_item.get_total_item_price}}$</del>
+              </span>   
+              {{order_item.get_total_item_dicount_price}}$
+              <a style='color: red;' href="{% url 'core:remove_from_cart' order_item.item.slug %}">
+                <i class="fas fa-trash float-right"></i>
+              </a>
+            </td>  
+
+          {% else %}
+            <td>{{order_item.item.price}}$</td>
+            <td>{{order_item.get_total_item_price}}$</td> 
+          {% endif %}
+
+          
+        </tr>
+
+        
+        
+        {% endfor %} 
+
+        {% if order.coupon %}
+          <tr>
+            <td colspan="5"><b>Coupon</b></td>
+            <td><b>-{{order.coupon.amount}}%</b></td>
+          </tr>
+        {% endif %}
+
+        
+        <tr>
+          <td colspan="5"><b>Order Total</b></td>
+          <td><b>{{order.get_total_price}}</b></td>
+        </tr>
+        
+        
+
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+
+
+
+{% endblock content %}
+  

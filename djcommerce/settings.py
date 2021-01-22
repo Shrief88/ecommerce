@@ -42,9 +42,8 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-
+    'widget_tweaks',
     'crispy_forms',
-
     'core',
 ]
 

@@ -15,7 +15,9 @@ urlpatterns = [
  path('remove-item-from-cart/<slug>/', views.remove_single_item_from_cart, name='remove_single_item_from_cart'),
  path('payment/<str:payment_option>/', views.payment, name='payment'),
  path('add-coupon/', views.add_coupon , name = 'coupon'),
- path('request-refund', views.RequestRefund , name = 'request_refund')
+ path('account/', views.account , name = 'account'),
+ path('request-refund', views.RequestRefund , name = 'request_refund'),
+ path('order/<str:ref_code>', views.order , name = 'order'),
 
 ]
 

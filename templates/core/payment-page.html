@@ -111,7 +111,7 @@
     <div class="row">
 
       <!--Grid column-->
-      <div class="col-md-10 mb-4">
+      <div class="col-md-12 mb-4">
 
         <!--Card-->
         <div class="card">
@@ -129,10 +129,7 @@
                     <button id="stripeBtn">Submit Payment</button>
                   </div>
                 <div class="stripe-form-row">
-                  <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input" name="save" id="save_card_info">
-                    <label class="custom-control-label" for="save_card_info">Save for future purchases</label>
-                  </div>
+                  <a href='{% url 'core:checkout' %}'>Edit my Billing Address</a>
                 </div>
               <div id="card-errors" role="alert"></div>
             </form>

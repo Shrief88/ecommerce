@@ -16,6 +16,16 @@ LABEL_CHOICES = (
     ('D', 'danger')
 )
 
+Payment_CHOICSE = (
+  ('S', 'Stripe'),
+  ('h', 'home')
+)
+
+PAYMENT_CHOICES = (
+  ('S', 'Stripe'),
+  ('C', 'Cash on delivery'),
+)
+
 class Item (models.Model):
   title = models.CharField(max_length=100)
   price = models.FloatField()
@@ -45,14 +55,6 @@ class Order(models.Model):
   received = models.BooleanField(default=False)
   refund_requested = models.BooleanField(default=False)
   refund_granted = models.BooleanField(default=False)
-
-  # 1) added item to card
-  # 2) adding billing address
-  # 3) adding patment card
-  # 4) (failed checkout)
-  # 5) (preprocessing , processing , packing , being delivered , Received)
-  # 6) Refunds
-  
 
   def __str__(self):
     return f"order by {self.user.username}"
@@ -93,12 +95,14 @@ class OrderItem(models.Model):
 
 class BillingAddress(models.Model):
   user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-  name = models.CharField(max_length=100)
+  first_name = models.CharField(max_length=100)
+  last_name = models.CharField(max_length=100)
   phone = models.CharField(max_length=11)
   secPhone = models.CharField(max_length=11 , blank=True , null= True)
   city = models.CharField(max_length=100)
   address = models.CharField(max_length=100)
   secAdress = models.CharField(max_length=100 , blank=True , null= True)
+  payment_option = models.CharField(choices=PAYMENT_CHOICES, max_length=30)
 
   def __str__(self):
     return self.user.username
@@ -128,5 +132,4 @@ class Refund(models.Model):
   reason = models.TextField()
   accepted = models.BooleanField(default=False)
 
-  def __str__(self):
-    return self.pk
+ 
